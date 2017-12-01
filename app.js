@@ -2,7 +2,7 @@
  * The main app launcher
  */
 
-let request = require('request'),
+const request = require('request'),
     events = require('events'),
     util = require('util');
 
@@ -11,15 +11,14 @@ require('dotenv').config();
 /**
  * Configurations
  */
-const pollMs = 500;
-const sessionURL = 'http://localhost:32017/Spokes/DeviceServices/Attach?uid=999';
+const POLL_MS = 500;
+const SESSION_URL = 'http://localhost:32017/Spokes/DeviceServices/Attach?uid=999';
 const eventURLPattern = 'http://localhost:32017/Spokes/DeviceServices/Events?sess=%s&queue=0';
 
 /** Initialize Event and Listeners */
 let eventEmitter = new events.EventEmitter();
 const listenersFolderDirectory = './Listeners/';
 const fs = require('fs');
-let listeners = [];
 
 fs.readdirSync(listenersFolderDirectory).forEach(file => {
     let register = require(listenersFolderDirectory + file);
@@ -31,7 +30,7 @@ fs.readdirSync(listenersFolderDirectory).forEach(file => {
  * - get a session
  * - with that session, pull on timer
  */
-request(sessionURL, (error, response, body) => {
+request(SESSION_URL, (error, response, body) => {
     if (error) {
         console.error(error);
         return false;
@@ -39,9 +38,10 @@ request(sessionURL, (error, response, body) => {
 
     let resp = JSON.parse(body);
     let sessionID = resp.Result;
+    let eventsUrl = util.format(eventURLPattern, sessionID);
 
     setInterval(() => {
-        request(util.format(eventURLPattern, sessionID), (error, response, body) => {
+        request(eventsUrl, (error, response, body) => {
             if (error) {
                 console.error(error);
                 return false;
