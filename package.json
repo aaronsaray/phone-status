@@ -1,0 +1,16 @@
+{
+  "name": "phone-status",
+  "version": "1.0.0",
+  "description": "Updates Services based on events from phone headset Plantronics Savi",
+  "main": "app.js",
+  "dependencies": {
+    "dotenv": "^4.0.0",
+    "request": "^2.83.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aaron Saray",
+  "license": "MIT"
+}
