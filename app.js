@@ -3,8 +3,9 @@
  */
 
 const request = require('request'),
-    events = require('events'),
-    util = require('util');
+      events = require('events'),
+      util = require('util'),
+      fs = require('fs');
 
 require('dotenv').config();
 
@@ -18,7 +19,6 @@ const eventURLPattern = 'http://localhost:32017/Spokes/DeviceServices/Events?ses
 /** Initialize Event and Listeners */
 let eventEmitter = new events.EventEmitter();
 const listenersFolderDirectory = './Listeners/';
-const fs = require('fs');
 
 fs.readdirSync(listenersFolderDirectory).forEach(file => {
     let register = require(listenersFolderDirectory + file);
@@ -28,7 +28,7 @@ fs.readdirSync(listenersFolderDirectory).forEach(file => {
 /**
  * Kick off the main process
  * - get a session
- * - with that session, pull on timer
+ * - with that session, poll on timer
  */
 request(SESSION_URL, (error, response, body) => {
     if (error) {
