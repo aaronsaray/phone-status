@@ -2,9 +2,10 @@
  * The main app launcher
  */
 
-const request = require('request'),
+const requestPromise = require('request-promise'),
     events = require('events'),
-    util = require('util');
+    util = require('util'),
+    fs = require('fs');
 
 require('dotenv').config();
 
@@ -12,13 +13,14 @@ require('dotenv').config();
  * Configurations
  */
 const POLL_MS = 500;
+const SESION_REFERSH_MS = 3600000; // 1 hour
 const SESSION_URL = 'http://localhost:32017/Spokes/DeviceServices/Attach?uid=999';
 const eventURLPattern = 'http://localhost:32017/Spokes/DeviceServices/Events?sess=%s&queue=0';
+
 
 /** Initialize Event and Listeners */
 let eventEmitter = new events.EventEmitter();
 const listenersFolderDirectory = './Listeners/';
-const fs = require('fs');
 
 fs.readdirSync(listenersFolderDirectory).forEach(file => {
     let register = require(listenersFolderDirectory + file);
@@ -26,34 +28,84 @@ fs.readdirSync(listenersFolderDirectory).forEach(file => {
 });
 
 /**
- * Kick off the main process
- * - get a session
- * - with that session, pull on timer
+ * Returns a promise'd result of the URL for the new session
  */
-request(SESSION_URL, (error, response, body) => {
-    if (error) {
-        console.error(error);
-        return false;
-    }
-
-    let resp = JSON.parse(body);
-    let sessionID = resp.Result;
-    let eventsUrl = util.format(eventURLPattern, sessionID);
-
-    setInterval(() => {
-        request(eventsUrl, (error, response, body) => {
-            if (error) {
-                console.error(error);
-                return false;
-            }
-
+const getSessionUrl = () => {
+    return requestPromise(SESSION_URL)
+        .then(body => {
             let resp = JSON.parse(body);
+            let sessionID = resp.Result;
+            return util.format(eventURLPattern, sessionID);
+        });
+}
 
-            if (resp.Result !== '') {
-                resp.Result.forEach(result => {
-                    eventEmitter.emit(result.Event_Name);
-                });
+/**
+ * Takes all of our events that the base issues and emits them for listeners
+ * @param {string} eventsUrl 
+ */
+const emitEventsFromSession = (eventsUrl) => {
+    return requestPromise(eventsUrl)
+        .then(body => {
+            return JSON.parse(body);
+        })
+        .then(response => {
+            if (response.Result !== '') {
+                if (response.Result instanceof Array) {
+                    response.Result.forEach(result => {
+                        eventEmitter.emit(result.Event_Name);
+                    });
+                }
+                else {
+                    // to be handled by our failure (then)
+                    return response;
+                }
             }
-        }); 
-    }, 500);
-});
+        });
+}
+
+/**
+ * The main promise-based interval.  Basically the interval happens. If the interval has a problem,
+ * it will resolve or reject the promise.
+ * @param {string} eventsUrl 
+ */
+const runTask = (eventsUrl) => {
+    return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+            emitEventsFromSession(eventsUrl)
+                .then((resp) => {
+                    // if no resp, that means nothing happened or it was handled properly
+                    if (resp) {
+                        clearInterval(interval);
+
+                        const knownErrors = [
+                            'Invalid session id', // expired
+                            'There are no supported devices' // usb went to sleep
+                        ];
+
+                        if (resp.isError && knownErrors.includes(resp.Err.Description) {
+                            resolve(); // it's weird that it's resolving but it's telling it to move on to call main again
+                        }
+                        else {
+                            // an unknown error, so console.error it in the catch
+                            reject(resp);
+                        }
+                    }
+                });
+        }, 500);
+    })
+};
+
+/**
+ * Main app.  Gets the session, then runs the interval, and if its resolved, runs self again because we need to restart
+ * the whole process.
+ */
+const main = _ => {
+    getSessionUrl()
+    .then(runTask)
+    .then(main)
+    .catch(error => {
+        console.error(error);
+    })
+}
+
+main();
