@@ -82,7 +82,7 @@ const runTask = (eventsUrl) => {
                             'There are no supported devices' // usb went to sleep
                         ];
 
-                        if (resp.isError && knownErrors.includes(resp.Err.Description) {
+                        if (resp.isError && knownErrors.includes(resp.Err.Description)) {
                             resolve(); // it's weird that it's resolving but it's telling it to move on to call main again
                         }
                         else {
