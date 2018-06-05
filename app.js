@@ -5,9 +5,22 @@
 const requestPromise = require('request-promise'),
     events = require('events'),
     util = require('util'),
-    fs = require('fs');
+    fs = require('fs'),
+    winston = require('winston');
 
 require('dotenv').config();
+
+/**
+ * Set up the log level of error, warn, info, verbose, debug or silly from `.env` LOG_LEVEL
+ */
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL,
+    transports: [
+        new winston.transports.Console({
+            format: winston.format.simple()
+        })
+    ]
+});
 
 /**
  * Configurations
@@ -49,7 +62,11 @@ const emitEventsFromSession = (eventsUrl) => {
             return JSON.parse(body);
         })
         .then(response => {
+            logger.silly('Response from event request', response);
+
             if (response.Result !== '') {
+                logger.debug('Response result from event', response.Result);
+                
                 if (response.Result instanceof Array) {
                     response.Result.forEach(result => {
                         eventEmitter.emit(result.Event_Name);
