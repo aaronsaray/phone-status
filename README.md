@@ -13,6 +13,7 @@ When the headset is **docked** the status will be cleared and so will the emoji.
 
 - Copy `.env.example` to `.env`
 - Alter any environment variables. For example, you can get your Slack Web token [here](https://api.slack.com/custom-integrations/legacy-tokens).
+- Run `npm install` to get the dependencies
 
 ### Running
 
