@@ -4,6 +4,7 @@
   "description": "Updates Services based on events from phone headset Plantronics Savi",
   "main": "app.js",
   "dependencies": {
+    "cryptiles": ">=4.1.2",
     "dotenv": "^4.0.0",
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
